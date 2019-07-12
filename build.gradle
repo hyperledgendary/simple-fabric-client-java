@@ -50,4 +50,3 @@ shadowJar {
     classifier = null
     version = null
 }
-
