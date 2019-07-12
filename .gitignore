@@ -40,3 +40,6 @@ local.properties
 # Annotation Processing
 .apt_generated/
 
+# Credentials
+*.pem
+
