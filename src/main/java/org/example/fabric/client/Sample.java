@@ -8,10 +8,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -111,10 +108,13 @@ public interface Sample {
           Contract contract = network.getContract(CONTRACT_NAME);
 
           byte[] result = contract.submitTransaction("createCar", "CAR10", "VW", "Polo", "Grey", "Mary");
-          System.out.println(result);
+          System.out.println("createCar result: " + new String(result));
+
+          result = contract.evaluateTransaction("queryCar", "CAR10");
+          System.out.println("queryCar result: " + new String(result));
 
           result = contract.evaluateTransaction("queryAllCars");
-          System.out.println(new String(result));
+          System.out.println("queryAllCars result: " + new String(result));
 
         } catch (Exception ex) {
           ex.printStackTrace();
