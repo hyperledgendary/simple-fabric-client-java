@@ -43,7 +43,7 @@ public interface Sample {
 
         // process command line args
         if (args.length != 3) {
-            System.out.println("Usage:\n\tjava <TBC>.jar identity certificate privateKey");
+            System.out.println("Usage:\n\tjava simpleFabricClient.jar identity certificate privateKey");
             System.exit(1);
         }
 
