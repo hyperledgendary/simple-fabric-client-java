@@ -1,0 +1,137 @@
+---
+#
+# The network connection profile provides client applications the information about the target
+# blockchain network that are necessary for the applications to interact with it. These are all
+# knowledge that must be acquired from out-of-band sources. This file provides such a source.
+#
+name: "hlf-network"
+
+#
+# Describe what the target network is/does.
+#
+description: "Hyperlegendary network"
+
+#
+# Schema version of the content. Used by the SDK to apply the corresponding parsing rules.
+#
+version: "1.0"
+
+#
+# Errrrrrr????
+#
+client:
+  organization: Org1
+  connection:
+    timeout:
+      peer:
+        endorser: 300
+      orderer: 300
+
+#
+# [Optional]. But most apps would have this section so that channel objects can be constructed
+# based on the content below. If an app is creating channels, then it likely will not need this
+# section.
+#
+channels:
+  # this template only includes one channel, e.g. mychannel
+  {{channel_name}}:
+    # Required. list of orderers designated by the application to use for transactions on this
+    # channel. This list can be a result of access control ("org1" can only access "ordererA"), or
+    # operational decisions to share loads from applications among the orderers.  The values must
+    # be "names" of orgs defined under "organizations/peers"
+    orderers:
+      - {{orderer_name}}
+
+    # Required. list of peers from participating orgs
+    peers:
+      {{peer_name}}:
+        # [Optional]. will this peer be sent transaction proposals for endorsement? The peer must
+        # have the chaincode installed. The app can also use this property to decide which peers
+        # to send the chaincode install request. Default: true
+        endorsingPeer: true
+
+        # [Optional]. will this peer be sent query proposals? The peer must have the chaincode
+        # installed. The app can also use this property to decide which peers to send the
+        # chaincode install request. Default: true
+        chaincodeQuery: true
+
+        # [Optional]. will this peer be sent query proposals that do not require chaincodes, like
+        # queryBlock(), queryTransaction(), etc. Default: true
+        ledgerQuery: true
+
+        # [Optional]. will this peer be the target of the SDK's listener registration? All peers can
+        # produce events but the app typically only needs to connect to one to listen to events.
+        # Default: true
+        eventSource: true
+
+#
+# list of participating organizations in this network
+#
+organizations:
+  # this template only includes one organisation, e.g. Org1
+  {{org_name}}:
+    # the MSP ID (?!), e.g. Org1MSP
+    mspid: {{msp_id}}
+
+    peers:
+      - {{peer_name}}
+
+    # [Optional]. Certificate Authorities issue certificates for identification purposes in a Fabric based
+    # network. Typically certificates provisioning is done in a separate process outside of the
+    # runtime network. Fabric-CA is a special certificate authority that provides a REST APIs for
+    # dynamic certificate management (enroll, revoke, re-enroll). The following section is only for
+    # Fabric-CA servers.
+    certificateAuthorities:
+      - {{ca_name}}
+
+#
+# List of orderers to send transaction and channel create/update requests to. For the time
+# being only one orderer is needed. If more than one is defined, which one get used by the
+# SDK is implementation specific. Consult each SDK's documentation for its handling of orderers.
+#
+orderers:
+  # this template only includes one peer, e.g. orderer.example.com
+  {{orderer_name}}:
+    # the order URL, e.g. grpc://localhost:7050
+    url: {{orderer_url}}
+
+    # these are standard properties defined by the gRPC library
+    # they will be passed in as-is to gRPC client constructor
+    grpcOptions:
+      ssl-target-name-override: {{orderer_name}}
+
+#
+# List of peers to send various requests to, including endorsement, query
+# and event listener registration.
+#
+peers:
+  # this template only includes one peer, e.g. peer0.org1.example.com
+  {{peer_name}}:
+    # this URL is used to send endorsement and query requests, e.g. grpc://localhost:7051
+    url: {{peer_url}}
+
+    grpcOptions:
+      ssl-target-name-override: {{peer_name}}
+      request-timeout: 120001
+
+# Fabric-CA is a special kind of Certificate Authority provided by Hyperledger Fabric which allows
+# certificate management to be done via REST APIs. Application may choose to use a standard
+# Certificate Authority instead of Fabric-CA, in which case this section would not be specified.
+#
+certificateAuthorities:
+  # this template only includes one CA, e.g. ca-org1
+  {{ca_name}}:
+    # the CA URL, e.g. http://localhost:7054
+    url: {{ca_url}}
+    # the properties specified under this object are passed to the 'http' client verbatim when
+    # making the request to the Fabric-CA server
+    httpOptions:
+      verify: false
+
+    # Fabric-CA supports dynamic user enrollment via REST APIs. A "root" user, a.k.a registrar, is
+    # needed to enroll and invoke new users.
+    registrar:
+      - enrollId: admin
+        enrollSecret: adminpw
+    # [Optional] The optional name of the CA.
+    caName: {{ca_name}}

@@ -3,40 +3,121 @@
  */
 package org.example.fabric.client;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.hyperledger.fabric.gateway.Contract;
 import org.hyperledger.fabric.gateway.Gateway;
 import org.hyperledger.fabric.gateway.Network;
 import org.hyperledger.fabric.gateway.Wallet;
+import org.hyperledger.fabric.gateway.Wallet.Identity;
+
+import com.github.jknack.handlebars.Context;
+import com.github.jknack.handlebars.Handlebars;
+import com.github.jknack.handlebars.Template;
 
 public interface Sample {
-  static void main(String[] args) throws Exception {
 
-    // Create a new wallet for managing identities.
-    Wallet wallet = Wallet.createInMemoryWallet();
+    public static final String CHANNEL_NAME = "mychannel";
+    public static final String CONTRACT_NAME = "fabcar";
 
-    // load a CCP
-    Path networkConfigPath = Paths.get(args[0]).toAbsolutePath();
+    static void main(String[] args) throws Exception {
 
-    Gateway.Builder builder = Gateway.createBuilder();
-    builder.identity(wallet, "user1").networkConfig(networkConfigPath);
+        // process command line args
+        if (args.length != 3) {
+            System.out.println("Usage:\n\tjava <TBC>.jar identity certificate privateKey");
+            System.exit(1);
+        }
 
-    // create a gateway connection
-    try (Gateway gateway = builder.connect()) {
-      // get the network and contract
-      Network network = gateway.getNetwork("mychannel");
-      Contract contract = network.getContract("fabcar");
+        String identity = args[0];
+        Path certificatePath = Paths.get(args[1]).toAbsolutePath();
+        Path privateKeyPath = Paths.get(args[2]).toAbsolutePath();
 
-      byte[] result = contract.submitTransaction("createCar", "CAR10", "VW", "Polo", "Grey", "Mary");
-      System.out.println(result);
+        System.out.println("identity: " + identity);
+        System.out.println("certificate: " + certificatePath.toString());
+        System.out.println("privateKey: " + privateKeyPath.toString());
 
-      result = contract.evaluateTransaction("queryAllCars");
-      System.out.println(new String(result));
+        // create a wallet for the provided identity
+        Wallet wallet = Wallet.createInMemoryWallet();
 
-    } catch (Exception ex) {
-      ex.printStackTrace();
+        String mspId = "Org1MSP";
+        Reader certificate = new FileReader(certificatePath.toFile());
+        Reader privateKey = new FileReader(privateKeyPath.toFile());
+
+        Identity id = Identity.createIdentity(mspId, certificate, privateKey);
+        wallet.put(identity, id);
+
+        // prepare a connection profile
+        Handlebars handlebars = new Handlebars();
+
+        Template template = handlebars.compile("connection-profile.yaml");
+
+        Map<String, Object> model = new HashMap<String, Object>();
+        model.put("ca_name", "ca-org1");
+        model.put("ca_url", "http://localhost:17054");
+        model.put("channel_name", CHANNEL_NAME);
+        model.put("orderer_name", "orderer.example.com");
+        model.put("orderer_url", "grpc://localhost:17050");
+        model.put("org_name", "Org1");
+        model.put("msp_id", "Org1MSP");
+        model.put("peer_name", "peer0.org1.example.com");
+        model.put("peer_url", "grpc://localhost:17051");
+
+        Context context = Context.newContext(model);
+
+        String connectionProfile = template.apply(context);
+        //System.out.println(connectionProfile);
+
+        // load a CCP
+        // create temporary connection profile file since API does not accept streams
+        File configFile = null;
+        BufferedWriter out = null;
+
+        try {
+            configFile = File.createTempFile("hlfconn", ".yaml");
+            configFile.deleteOnExit();
+
+            out = new BufferedWriter(new FileWriter(configFile));
+            out.write(connectionProfile);
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (out != null) {
+                out.close();
+            }
+        }
+
+        Path configFilePath = configFile.toPath();
+
+        Gateway.Builder builder = Gateway.createBuilder();
+        builder.identity(wallet, identity).networkConfig(configFilePath);
+
+        // create a gateway connection
+        try (Gateway gateway = builder.connect()) {
+          // get the network and contract
+          Network network = gateway.getNetwork(CHANNEL_NAME);
+          Contract contract = network.getContract(CONTRACT_NAME);
+
+          byte[] result = contract.submitTransaction("createCar", "CAR10", "VW", "Polo", "Grey", "Mary");
+          System.out.println(result);
+
+          result = contract.evaluateTransaction("queryAllCars");
+          System.out.println(new String(result));
+
+        } catch (Exception ex) {
+          ex.printStackTrace();
+        }
     }
-  }
 }
