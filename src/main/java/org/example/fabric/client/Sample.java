@@ -42,27 +42,20 @@ public interface Sample {
     static void main(String[] args) throws Exception {
 
         // process command line args
-        if (args.length != 3) {
-            System.out.println("Usage:\n\tjava simpleFabricClient.jar identity certificate privateKey");
+        if ((args.length < 2) || (args.length > 3)) {
+            System.out.println("Usage:\n" +
+                               "\tjava simpleFabricClient.jar identity certificate privateKey\n" +
+                               "\tjava simpleFabricClient.jar identity wallet");
             System.exit(1);
         }
 
         String identity = args[0];
-        Path certificatePath = Paths.get(args[1]).toAbsolutePath();
-        Path privateKeyPath = Paths.get(args[2]).toAbsolutePath();
-
-        System.out.println("identity: " + identity);
-        System.out.println("certificate: " + certificatePath.toString());
-        System.out.println("privateKey: " + privateKeyPath.toString());
-
-        // create a wallet for the provided identity
-        Wallet wallet = Wallet.createInMemoryWallet();
-
-        Reader certificate = new FileReader(certificatePath.toFile());
-        Reader privateKey = new FileReader(privateKeyPath.toFile());
-
-        Identity id = Identity.createIdentity(MSP_ID, certificate, privateKey);
-        wallet.put(identity, id);
+        Wallet wallet;
+        if (args.length == 2) {
+            wallet = initWallet(identity, args[1]);
+        } else {
+            wallet = initWallet(identity, args[1], args[2]);
+        }
 
         // prepare a connection profile
         Handlebars handlebars = new Handlebars();
@@ -128,5 +121,68 @@ public interface Sample {
         } catch (Exception ex) {
           ex.printStackTrace();
         }
+    }
+
+    // create an in memory wallet for required id using supplied file system wallet
+    static Wallet initWallet(String identity, String wallet) {
+        System.out.println("identity: " + identity);
+        System.out.println("certificate: " + wallet);
+
+        Path walletPath = Paths.get(wallet).toAbsolutePath();
+        Wallet result = Wallet.createInMemoryWallet();
+
+        try {
+            Wallet fsWallet = Wallet.createFileSystemWallet(walletPath);
+
+            result.put(identity, fsWallet.get(identity));
+        } catch (IOException e) {
+            throw new RuntimeException("Could not create wallet for " + identity
+                    + " using the specified wallet: " + walletPath.toString(), e);
+        }
+
+        return result;
+    }
+
+    // create an in memory wallet for required id using supplied certificate and private key
+    static Wallet initWallet(String identity, String certificate, String privateKey) {
+        System.out.println("identity: " + identity);
+        System.out.println("certificate: " + certificate);
+        System.out.println("privateKey: " + privateKey);
+
+        Path certificatePath = Paths.get(certificate).toAbsolutePath();
+        Path privateKeyPath = Paths.get(privateKey).toAbsolutePath();
+        Reader certificateReader = null;
+        Reader privateKeyReader = null;
+        Wallet result = Wallet.createInMemoryWallet();
+
+        try {
+            certificateReader = new FileReader(certificatePath.toFile());
+            privateKeyReader = new FileReader(privateKeyPath.toFile());
+
+            Identity id = Identity.createIdentity(MSP_ID, certificateReader, privateKeyReader);
+            result.put(identity, id);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not create wallet for " + identity
+                    + " using the specified certificate and private key files: " + certificatePath.toString() + " "
+                    + privateKeyPath.toString(), e);
+        } finally {
+            if (certificateReader != null) {
+                try {
+                    certificateReader.close();
+                } catch (IOException e) {
+                    // we tried
+                }
+            }
+
+            if (privateKeyReader != null) {
+                try {
+                    privateKeyReader.close();
+                } catch (IOException e) {
+                    // we tried
+                }
+            }
+        }
+
+        return result;
     }
 }

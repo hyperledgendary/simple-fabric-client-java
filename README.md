@@ -28,10 +28,16 @@ cd simple-fabric-client-java
 
 ## Running the sample
 
-You need to have installed and instantiated the FabCar sample using vscode, and created a certificate and key file before running the sample. The certificate and private key information can be found by exporting the local_fabric_wallet from vscode.
+You need to have installed and instantiated the FabCar sample using vscode, and exporting the local_fabric_wallet before running the sample.
 
 From the _simple-fabric-client-java_ directory using the following command:
 
 ```
-java -jar build/libs/simpleFabricClient.jar admin cert.pem key.pem
+java -jar build/libs/simpleFabricClient.jar admin <path_to_exported_wallet>
+```
+
+It's also possible to run the sample with a certificate and private key using the following command:
+
+```
+java -jar build/libs/simpleFabricClient.jar admin <path_to_certificate> <path_to_private_key>
 ```
