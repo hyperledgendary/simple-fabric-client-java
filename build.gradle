@@ -11,9 +11,7 @@ plugins {
     id 'java-library'
 }
 
-repositories {
-    mavenLocal()
-	
+repositories {	
     // Use jcenter for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
     jcenter()
@@ -33,7 +31,7 @@ dependencies {
 
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     implementation 'com.github.jknack:handlebars:4.1.2'
-    implementation 'org.hyperledger.fabric:fabric-gateway-java:1.4.0-SNAPSHOT'
+    implementation 'org.hyperledger.fabric-gateway-java:fabric-gateway-java:1.4.0-SNAPSHOT'
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
