@@ -79,25 +79,16 @@ public interface Sample {
 
         // load a CCP
         // create temporary connection profile file since API does not accept streams yet
-        File configFile = null;
-        BufferedWriter out = null;
+        File configFile = File.createTempFile("hlfconn", ".yaml");
+        configFile.deleteOnExit();
+        Path configFilePath = configFile.toPath();
 
-        try {
-            configFile = File.createTempFile("hlfconn", ".yaml");
-            configFile.deleteOnExit();
-
-            out = new BufferedWriter(new FileWriter(configFile));
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(configFile))) {
             out.write(connectionProfile);
             out.close();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (out != null) {
-                out.close();
-            }
         }
-
-        Path configFilePath = configFile.toPath();
 
         Gateway.Builder builder = Gateway.createBuilder();
         builder.identity(wallet, identity).networkConfig(configFilePath);
@@ -151,13 +142,10 @@ public interface Sample {
 
         Path certificatePath = Paths.get(certificate).toAbsolutePath();
         Path privateKeyPath = Paths.get(privateKey).toAbsolutePath();
-        Reader certificateReader = null;
-        Reader privateKeyReader = null;
         Wallet result = Wallet.createInMemoryWallet();
 
-        try {
-            certificateReader = new FileReader(certificatePath.toFile());
-            privateKeyReader = new FileReader(privateKeyPath.toFile());
+        try (Reader certificateReader = new FileReader(certificatePath.toFile());
+             Reader privateKeyReader = new FileReader(privateKeyPath.toFile())) {
 
             Identity id = Identity.createIdentity(MSP_ID, certificateReader, privateKeyReader);
             result.put(identity, id);
@@ -165,22 +153,6 @@ public interface Sample {
             throw new RuntimeException("Could not create wallet for " + identity
                     + " using the specified certificate and private key files: " + certificatePath.toString() + " "
                     + privateKeyPath.toString(), e);
-        } finally {
-            if (certificateReader != null) {
-                try {
-                    certificateReader.close();
-                } catch (IOException e) {
-                    // we tried
-                }
-            }
-
-            if (privateKeyReader != null) {
-                try {
-                    privateKeyReader.close();
-                } catch (IOException e) {
-                    // we tried
-                }
-            }
         }
 
         return result;
